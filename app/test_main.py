@@ -1,56 +1,52 @@
 import datetime
-from typing import List
+from typing import List, Dict
 from unittest.mock import patch
 
-# Збережемо оригінальний datetime.date, щоб використовувати у side_effect
-_real_date = datetime.date
+from app.main import outdated_products
 
 
-def make_product(
-    name: str, year: int, month: int, day: int, price: int
-) -> dict:
-    return {
-        "name": name,
-        "expiration_date": _real_date(year, month, day),
-        "price": price,
-    }
-
-
-@patch("app.main.datetime.date")
-def test_outdated_products_some(mock_date: "patch") -> None:
-    mock_date.today.return_value = _real_date(2022, 2, 2)
-    mock_date.side_effect = lambda *args, **kwargs: _real_date(*args, **kwargs)
-    products: List[dict] = [
-        make_product("salmon", 2022, 2, 10, 600),
-        make_product("chicken", 2022, 2, 5, 120),
-        make_product("duck", 2022, 2, 1, 160),
+def test_outdated_products_some() -> None:
+    products: List[Dict] = [
+        {"name": "salmon", "expiration_date": datetime.date(2022, 2, 10),
+         "price": 600},
+        {"name": "chicken", "expiration_date": datetime.date(2022, 2, 5),
+         "price": 120},
+        {"name": "duck", "expiration_date": datetime.date(2022, 2, 1),
+         "price": 160},
     ]
-    expected = ["duck"]
-    from app.main import outdated_products
-    assert outdated_products(products) == expected
+    with patch("datetime.date") as mock_date:
+        mock_date.today.return_value = datetime.date(2022, 2, 2)
+        mock_date.side_effect = lambda *args, **kwargs: datetime.date(*args,
+                                                                      **kwargs)
+        result = outdated_products(products)
+    assert result == ["duck"]
 
 
-@patch("app.main.datetime.date")
-def test_outdated_products_none_outdated(mock_date: "patch") -> None:
-    mock_date.today.return_value = _real_date(2022, 2, 2)
-    mock_date.side_effect = lambda *args, **kwargs: _real_date(*args, **kwargs)
-    products: List[dict] = [
-        make_product("salmon", 2022, 2, 10, 600),
-        make_product("chicken", 2022, 2, 5, 120),
+def test_outdated_products_none_outdated() -> None:
+    products: List[Dict] = [
+        {"name": "salmon", "expiration_date": datetime.date(2022, 2, 10),
+         "price": 600},
+        {"name": "chicken", "expiration_date": datetime.date(2022, 2, 5),
+         "price": 120},
     ]
-    expected: List[str] = []
-    from app.main import outdated_products
-    assert outdated_products(products) == expected
+    with patch("datetime.date") as mock_date:
+        mock_date.today.return_value = datetime.date(2022, 2, 2)
+        mock_date.side_effect = lambda *args, **kwargs: datetime.date(*args,
+                                                                      **kwargs)
+        result = outdated_products(products)
+    assert result == []
 
 
-@patch("app.main.datetime.date")
-def test_outdated_products_all_outdated(mock_date: "patch") -> None:
-    mock_date.today.return_value = _real_date(2022, 2, 10)
-    mock_date.side_effect = lambda *args, **kwargs: _real_date(*args, **kwargs)
-    products: List[dict] = [
-        make_product("salmon", 2022, 2, 1, 600),
-        make_product("chicken", 2022, 2, 5, 120),
+def test_outdated_products_all_outdated() -> None:
+    products: List[Dict] = [
+        {"name": "duck", "expiration_date": datetime.date(2022, 1, 1),
+         "price": 160},
+        {"name": "rabbit", "expiration_date": datetime.date(2022, 1, 31),
+         "price": 300},
     ]
-    expected = ["salmon", "chicken"]
-    from app.main import outdated_products
-    assert outdated_products(products) == expected
+    with patch("datetime.date") as mock_date:
+        mock_date.today.return_value = datetime.date(2022, 2, 2)
+        mock_date.side_effect = lambda *args, **kwargs: datetime.date(*args,
+                                                                      **kwargs)
+        result = outdated_products(products)
+    assert result == ["duck", "rabbit"]
